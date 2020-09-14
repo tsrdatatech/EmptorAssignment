@@ -1,0 +1,23 @@
+{
+  "name": "emptorassignment",
+  "version": "1.0.0",
+  "description": "Emptor Assignment",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tsrdatatech/EmptorAssignment.git"
+  },
+  "author": "Tom Russell",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tsrdatatech/EmptorAssignment/issues"
+  },
+  "homepage": "https://github.com/tsrdatatech/EmptorAssignment#readme",
+  "devDependencies": {
+    "serverless-python-requirements": "^5.1.0"
+  },
+  "dependencies": {}
+}

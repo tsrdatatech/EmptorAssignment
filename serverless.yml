@@ -1,0 +1,18 @@
+service: emptorassignment
+provider:
+  name: aws
+  runtime: python3.7
+functions:
+  title:
+    handler: lambda_handler.title
+    events:
+      - http:
+          path: title
+          method: get
+          request:
+            parameters:
+              querystrings:
+                url: true
+    name: emptorassignment-dev-title
+plugins:
+  - serverless-python-requirements
