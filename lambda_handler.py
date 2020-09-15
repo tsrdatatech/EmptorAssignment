@@ -6,7 +6,7 @@ from validator_collection import checkers
 
 def title(event, context):
 
-    url = event['queryStringParameters']['url']
+    url = event['url']
 
     # validate url
     if checkers.is_url(url):
