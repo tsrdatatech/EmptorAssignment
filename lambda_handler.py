@@ -8,7 +8,7 @@ import asyncio
 import logging
 
 s3 = boto3.client('s3')
-
+region = 'us-east-1'
 
 async def title(key):
     # s3 bucket and dynamo table info
@@ -16,7 +16,7 @@ async def title(key):
     table = os.environ.get('DYNAMO_TABLE')
     logging.info('Retrieved bucket: %s and Table: %s', bucket, table)
     # dynamo operations
-    dynamo = boto3.resource('dynamodb')
+    dynamo = boto3.resource('dynamodb', region_name=region)
     table = dynamo.Table(table)
     # get key and then url
     key = table.get_item(Key={'id': key})
@@ -33,8 +33,6 @@ async def title(key):
     s3_url = 'https://%s.s3.amazonaws.com/%s' % (bucket, key)
 
     # dynamo operations
-    dynamo = boto3.resource('dynamodb')
-    table = dynamo.Table(table)
     table.update_item(Item={'id': key}, AttributeUpdates={'title': page_title, 's3url': s3_url, 'status': 'PROCESSED'})
     logging.info('Table updated')
 
@@ -61,7 +59,7 @@ def input_title(event, context):
         key = str(hash(url))
 
         # dynamo operations
-        dynamo = boto3.resource('dynamodb')
+        dynamo = boto3.resource('dynamodb', region_name=region)
         table = dynamo.Table(table)
         table.put_item(Item={'id': key, 'url': url, 'status': 'PENDING'})
 
@@ -92,7 +90,7 @@ def get_title(event, context):
     table = os.environ.get('DYNAMO_TABLE')
 
     # dynamo operations
-    dynamo = boto3.resource('dynamodb')
+    dynamo = boto3.resource('dynamodb', region_name=region)
     table = dynamo.Table(table)
     response = table.get_item(Key={'id': key})
     return {
