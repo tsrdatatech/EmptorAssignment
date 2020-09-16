@@ -23,8 +23,6 @@ def title(event, context):
         key = str(hash(url))
 
         # s3 operations
-        # s3 = boto3.client('s3')
-        # s3bucket = s3.Bucket(bucket)
         s3.put_object(Body=response.content, Bucket=bucket, Key=key)
         s3_url = 'https://%s.s3.amazonaws.com/%s' % (bucket, key)
 
