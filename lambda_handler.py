@@ -10,7 +10,7 @@ s3 = boto3.client('s3')
 region = 'us-east-1'
 
 
-def process_record(bucket, table, id, url):
+def process_record(bucket, table, titleid, url):
 
     logging.info('Retrieved bucket: %s and Table: %s', bucket, table)
 
@@ -25,11 +25,11 @@ def process_record(bucket, table, id, url):
     page_title = soup.title.string
 
     # s3 operations
-    s3.put_object(Body=response.content, Bucket=bucket, Key=id)
+    s3.put_object(Body=response.content, Bucket=bucket, Key=titleid)
     s3_url = 'https://%s.s3.amazonaws.com/%s' % (bucket, id)
 
     # dynamo operations
-    table.update_item(Item={'id': id}, AttributeUpdates={'title': page_title, 's3url': s3_url, 'status': 'PROCESSED'})
+    table.update_item(Item={'titleid': id}, AttributeUpdates={'title': page_title, 's3url': s3_url, 'status': 'PROCESSED'})
     logging.info('Table updated')
 
     return {
@@ -52,7 +52,7 @@ def title_commit(event, context):
         for record in event['Records']:
             if record['dynamodb']['NewImage']['status']['S'] == 'PENDING':
                 item = record['dynamodb']['NewImage']
-                result = process_record(bucket, table, item['id']['S'], item['url']['S'])
+                result = process_record(bucket, table, item['titleid']['S'], item['url']['S'])
                 print(result)
     except Exception as e:
         print(e)
@@ -72,7 +72,7 @@ def input_title(event, context):
         # dynamo operations
         dynamo = boto3.resource('dynamodb', region_name=region)
         table = dynamo.Table(table)
-        table.put_item(Item={'id': key, 'url': url, 'status': 'PENDING'})
+        table.put_item(Item={'titleid': key, 'url': url, 'status': 'PENDING'})
 
         return {
             'statusCode': 200,
@@ -92,7 +92,7 @@ def input_title(event, context):
 
 
 def get_title(event, context):
-    key = event['id']
+    key = event['titleid']
 
     # dynamo table info
     table = os.environ.get('DYNAMO_TABLE')
@@ -100,7 +100,7 @@ def get_title(event, context):
     # dynamo operations
     dynamo = boto3.resource('dynamodb', region_name=region)
     table = dynamo.Table(table)
-    response = table.get_item(Key={'id': key})
+    response = table.get_item(Key={'titleid': key})
     return {
         'statusCode': 200,
         'body': json.dumps({"item": response['Item']}),
