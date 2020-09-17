@@ -4,24 +4,20 @@ from bs4 import BeautifulSoup
 from validator_collection import checkers
 import boto3
 import os
-import asyncio
 import logging
 
 s3 = boto3.client('s3')
 region = 'us-east-1'
 
-async def title(key):
-    # s3 bucket and dynamo table info
-    bucket = os.environ.get('S3BUCKET')
-    table = os.environ.get('DYNAMO_TABLE')
+
+def process_record(bucket, table, id, url):
+
     logging.info('Retrieved bucket: %s and Table: %s', bucket, table)
+
     # dynamo operations
     dynamo = boto3.resource('dynamodb', region_name=region)
     table = dynamo.Table(table)
-    # get key and then url
-    key = table.get_item(Key={'id': key})
-    item = key['Item']
-    url = item['url']
+
     logging.info('Retrieved url %s', url)
 
     response = requests.get(url)
@@ -29,11 +25,11 @@ async def title(key):
     page_title = soup.title.string
 
     # s3 operations
-    s3.put_object(Body=response.content, Bucket=bucket, Key=key)
-    s3_url = 'https://%s.s3.amazonaws.com/%s' % (bucket, key)
+    s3.put_object(Body=response.content, Bucket=bucket, Key=id)
+    s3_url = 'https://%s.s3.amazonaws.com/%s' % (bucket, id)
 
     # dynamo operations
-    table.update_item(Item={'id': key}, AttributeUpdates={'title': page_title, 's3url': s3_url, 'status': 'PROCESSED'})
+    table.update_item(Item={'id': id}, AttributeUpdates={'title': page_title, 's3url': s3_url, 'status': 'PROCESSED'})
     logging.info('Table updated')
 
     return {
@@ -45,6 +41,21 @@ async def title(key):
             'Content-Type': 'application/json',
         }
     }
+
+
+def title_commit(event, context):
+    bucket = os.environ.get('S3BUCKET')
+    table = os.environ.get('DYNAMO_TABLE')
+
+    # Process records from db stream
+    try:
+        for record in event['Records']:
+            if record['dynamodb']['NewImage']['status']['S'] == 'PENDING':
+                item = record['dynamodb']['NewImage']
+                result = process_record(bucket, table, item['id']['S'], item['url']['S'])
+                print(result)
+    except Exception as e:
+        print(e)
 
 
 def input_title(event, context):
@@ -62,8 +73,6 @@ def input_title(event, context):
         dynamo = boto3.resource('dynamodb', region_name=region)
         table = dynamo.Table(table)
         table.put_item(Item={'id': key, 'url': url, 'status': 'PENDING'})
-
-        asyncio.run(title(key))
 
         return {
             'statusCode': 200,
@@ -83,7 +92,6 @@ def input_title(event, context):
 
 
 def get_title(event, context):
-
     key = event['id']
 
     # dynamo table info
